@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DFA Simulator</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>DFA Simulator</h1>
+            <p>Design, simulate and visualize a Deterministic Finite Automaton</p>
+        </header>
+
+        <!-- DFA DEFINITION -->
+        <section class="card">
+            <h2>1. Define DFA</h2>
+
+            <div class="form-group">
+                <label>States</label>
+                <input
+                    type="text"
+                    id="states"
+                    placeholder="Example: q0,q1,q2"
+                >
+                <small>
+                    Enter states separated by commas
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Alphabet</label>
+                <input
+                    type="text"
+                    id="alphabet"
+                    placeholder="Example: 0,1"
+                >
+                <small>
+                    Enter symbols separated by commas
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Start State</label>
+                <input
+                    type="text"
+                    id="startState"
+                    placeholder="Example: q0"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Final States</label>
+                <input
+                    type="text"
+                    id="finalStates"
+                    placeholder="Example: q2"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Transitions</label>
+                <textarea
+                    id="transitions"
+                    rows="8"
+                    placeholder="Example:
+q0,0,q0
+q0,1,q1
+q1,0,q2
+q1,1,q1
+q2,0,q2
+q2,1,q2"
+                ></textarea>
+                <small>
+                    Format: current_state,input_symbol,next_state
+                </small>
+            </div>
+
+            <button id="buildBtn">
+                Build DFA
+            </button>
+
+        </section>
+
+        <!-- VALIDATION -->
+        <section class="card">
+            <h2>2. Validation</h2>
+            <div id="validationMessage">
+                Define your DFA and click "Build DFA".
+            </div>
+        </section>
+
+        <!-- INPUT -->
+        <section class="card">
+            <h2>3. Input String</h2>
+            <input
+                type="text"
+                id="inputString"
+                placeholder="Example: 1100"
+            >
+
+            <div class="simulation-controls">
+                <button id="runBtn">Run Simulation</button>
+                <button id="nextBtn">Next Step</button>
+                <button id="prevBtn">Previous Step</button>
+                <button id="playBtn">▶ Play</button>
+                <button id="pauseBtn">⏸ Pause</button>
+                <button id="resetBtn">↺ Reset</button>
+            </div>
+
+        </section>
+
+        <!-- DFA VISUALIZATION -->
+        <section class="card">
+            <h2>4. DFA Visualization</h2>
+            <div id="dfaContainer">
+                <svg id="dfaSvg" viewBox="0 0 1000 500"></svg>
+            </div>
+        </section>
+
+        <!-- STEP BY STEP -->
+        <section class="card">
+            <h2>5. Step-by-Step Processing</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Symbol</th>
+                        <th>Current State</th>
+                        <th>Transition</th>
+                        <th>Next State</th>
+                    </tr>
+                </thead>
+                <tbody id="stepsTable">
+                </tbody>
+            </table>
+        </section>
+
+        <!-- RESULT -->
+        <section class="card">
+            <h2>6. Result</h2>
+            <div id="result">
+                Run the simulation to see the result.
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
