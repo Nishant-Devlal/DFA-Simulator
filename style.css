@@ -106,6 +106,13 @@ button:hover {
 table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 600px;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 th,
@@ -113,6 +120,7 @@ td {
     border: 1px solid #ddd;
     padding: 12px;
     text-align: center;
+    white-space: nowrap;
 }
 
 th {
@@ -196,4 +204,43 @@ th {
     fill: #dcfce7 !important;
     stroke: #16a34a !important;
     stroke-width: 5 !important;
+}
+
+@media (max-width: 600px) {
+    .container {
+        width: 94%;
+        margin: 20px auto;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    .card h2 {
+        font-size: 24px;
+    }
+
+    #dfaContainer {
+        min-height: 350px;
+    }
+
+    #dfaSvg {
+        height: 350px;
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 600px;
+    }
+
+    th,
+    td {
+        padding: 10px;
+        font-size: 14px;
+    }
+
 }
