@@ -81,6 +81,15 @@ function validateDFA(dfa) {
         if (!dfa.states.includes(from)) {
             return `Transition contains unknown state ${from}.`;
         }
+        if (new Set(dfa.states).size !== dfa.states.length) {
+            return "Duplicate states are not allowed.";
+        }
+        if (new Set(dfa.alphabet).size !== dfa.alphabet.length) {
+            return "Duplicate alphabet symbols are not allowed.";
+        }
+        if (new Set(dfa.finalStates).size !== dfa.finalStates.length) {
+            return "Duplicate final states are not allowed.";
+        }
 
         for (const symbol of Object.keys(dfa.transitions[from])) {
             const to = dfa.transitions[from][symbol];
@@ -93,19 +102,14 @@ function validateDFA(dfa) {
         }
     }
 
-    // Check that every state has a transition
-    // for every alphabet symbol.
+    // Check that every state has a transition for every alphabet symbol
     for (const state of dfa.states) {
         for (const symbol of dfa.alphabet) {
-            if (
-                !dfa.transitions[state] ||
-                !dfa.transitions[state][symbol]
-            ) {
+            if (!dfa.transitions[state] || !dfa.transitions[state][symbol]) {
                 return `Missing transition: δ(${state}, ${symbol})`;
             }
         }
     }
-
     return null;
 }
 
@@ -199,16 +203,50 @@ function createArrowMarker(svg) {
 
 function calculateStatePositions(states) {
     const positions = {};
-    const startX = 150;
-    const spacing = 180;
-    const y = 250;
+    const count = states.length;
+    const width = 1000;
+    const height = 600;
+
+    // 1-3 STATES
+    if (count <= 3) {
+        const spacing = width / (count + 1);
+        states.forEach((state, index) => {
+            positions[state] = {x: spacing * (index + 1), y: height / 2};
+        });
+        return positions;
+    }
+
+    // 4 STATES
+    if (count === 4) {
+        positions[states[0]] = {x: 300, y: 180};
+        positions[states[1]] = {x: 700, y: 180};
+        positions[states[2]] = {x: 700, y: 420};
+        positions[states[3]] = {x: 300, y: 420};
+        return positions;
+    }
+
+    // 5+ STATES
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius =Math.min(width, height) * 0.35;
     states.forEach((state, index) => {
+        const angle = (2 * Math.PI * index / count) - Math.PI / 2;
         positions[state] = {
-            x: startX + index * spacing,
-            y: y
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle)
         };
     });
     return positions;
+}
+
+function updateSvgSize(stateCount) {
+    const svg = document.getElementById("dfaSvg");
+    if (stateCount <= 4) {
+        svg.setAttribute("viewBox", "0 0 1000 600");
+    } 
+    else {
+        svg.setAttribute("viewBox", "0 0 1000 700");
+    }
 }
 
 function drawState(svg, state, position, isFinal) {
@@ -227,6 +265,7 @@ function drawState(svg, state, position, isFinal) {
         innerCircle.setAttribute("cx", position.x);
         innerCircle.setAttribute("cy", position.y);
         innerCircle.setAttribute("r", 33);
+        innerCircle.setAttribute("data-state", state);
         innerCircle.setAttribute("class", "dfa-final-state");
         group.appendChild(innerCircle);
     }
@@ -254,20 +293,30 @@ function drawStartArrow(svg, position) {
 }
 
 function drawSelfLoop(svg, state, position, label) {
-    const path =document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     const x = position.x;
     const y = position.y;
+    const radius = 40;
+    const angle = -Math.PI / 2;   // Determines where the loop should be placed
+    const startAngle = angle - Math.PI / 5;
+    const endAngle = angle + Math.PI / 5;
+    const startX = x + radius * Math.cos(startAngle);
+    const startY = y + radius * Math.sin(startAngle);
+    const endX = x + radius * Math.cos(endAngle);
+    const endY = y + radius * Math.sin(endAngle);
+    const loopRadius = 105;      // Control points
+    const controlX = x + loopRadius * Math.cos(angle);
+    const controlY = y + loopRadius * Math.sin(angle);
     const d = `
-        M ${x - 25} ${y - 30}
-        C ${x - 80} ${y - 100},
-          ${x + 80} ${y - 100},
-          ${x + 25} ${y - 30}
+        M ${startX} ${startY}
+        C
+        ${controlX} ${controlY},
+        ${controlX} ${controlY},
+        ${endX} ${endY}
     `;
 
     path.setAttribute("d", d);
     path.setAttribute("class", "dfa-arrow");
-
-    // Used later for transition highlighting
     path.setAttribute("data-from", state);
     path.setAttribute("data-to", state);
     path.setAttribute("data-symbol", label);
@@ -275,34 +324,76 @@ function drawSelfLoop(svg, state, position, label) {
     svg.appendChild(path);
 
     // Label
-    const text =document.createElementNS("http://www.w3.org/2000/svg","text");
-    text.setAttribute("x", x);
-    text.setAttribute("y", y - 85);
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const labelRadius = 125;
+    const labelX = x + labelRadius * Math.cos(angle);
+    const labelY = y + labelRadius * Math.sin(angle);
+
+    text.setAttribute("x", labelX);
+    text.setAttribute("y", labelY);
     text.setAttribute("class", "dfa-transition-label");
     text.textContent = label;
     svg.appendChild(text);
 }
 
-function drawTransition(svg, from,to, fromPosition, toPosition, label) {
-    const line =document.createElementNS("http://www.w3.org/2000/svg", "line");
+function drawTransition(svg, from, to, fromPosition, toPosition, label) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const x1 = fromPosition.x;
+    const y1 = fromPosition.y;
+    const x2 = toPosition.x;
+    const y2 = toPosition.y;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const radius = 40;
 
-    line.setAttribute("data-from", from);
-    line.setAttribute("data-to", to);
-    line.setAttribute("data-symbol", label);
-    line.setAttribute("x1", fromPosition.x + 40);
-    line.setAttribute("y1", fromPosition.y);
-    line.setAttribute("x2", toPosition.x - 40);
-    line.setAttribute("y2", toPosition.y);
-    line.setAttribute("class", "dfa-arrow");
-    line.setAttribute("marker-end", "url(#arrowhead)");
-    svg.appendChild(line);
+    // Start/end points on the boundary of states
+    const startX = x1 + (dx / length) * radius;
+    const startY = y1 + (dy / length) * radius;
+    const endX = x2 - (dx / length) * radius;
+    const endY = y2 - (dy / length) * radius;
 
-    // Label
+    // Midpoint
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+
+    // Perpendicular direction
+    const perpX = -dy / length;
+    const perpY = dx / length;
+
+    // Curve amount
+    let offset = 35;
+
+    if (length > 250) {
+        offset = 70;
+    }
+
+    const controlX = midX + perpX * offset;
+    const controlY = midY + perpY * offset;
+
+    // Create curved arrow
+    const d = `
+        M ${startX} ${startY}
+        Q ${controlX} ${controlY}
+          ${endX} ${endY}
+    `;
+
+    path.setAttribute("d", d);
+    path.setAttribute("class", "dfa-arrow");
+    path.setAttribute("data-from", from);
+    path.setAttribute("data-to", to);
+    path.setAttribute("data-symbol", label);
+    path.setAttribute("marker-end", "url(#arrowhead)");
+    svg.appendChild(path);
+
+    // Transition label
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    const midX = (fromPosition.x + toPosition.x) / 2;
-    const midY = (fromPosition.y + toPosition.y) / 2 - 10;
-    text.setAttribute("x", midX);
-    text.setAttribute("y", midY);
+    // Position label slightly away from the curve
+    const labelOffset = 18;
+    const labelX = controlX + perpX * labelOffset;
+    const labelY = controlY + perpY * labelOffset;
+    text.setAttribute("x", labelX);
+    text.setAttribute("y", labelY);
     text.setAttribute("class", "dfa-transition-label");
     text.textContent = label;
     svg.appendChild(text);
@@ -316,6 +407,7 @@ function visualizeDFA(dfa) {
 
     // Remove previous diagram
     svg.innerHTML = "";
+    updateSvgSize(dfa.states.length);
 
     // Create arrowhead
     createArrowMarker(svg);
@@ -323,27 +415,43 @@ function visualizeDFA(dfa) {
     // Calculate positions
     const positions = calculateStatePositions(dfa.states);
 
-    // Draw transitions first
+    const selfLoops = {};
+    dfa.states.forEach(state => {
+        selfLoops[state] = [];
+        if (!dfa.transitions[state]) {
+            return;
+        }
+        dfa.alphabet.forEach(symbol => {
+            const to = dfa.transitions[state][symbol];
+            if (to === state) {
+                selfLoops[state].push(symbol);
+            }
+        });
+    });
+
+    // Draw transitions
     for (const from of dfa.states) {
         if (!dfa.transitions[from]) {
             continue;
         }
 
+        // Draw ONE self-loop per state
+        if (selfLoops[from].length > 0) {
+            const symbols = selfLoops[from];
+            drawSelfLoop(svg, from, positions[from], symbols.join(", "));
+        }
+
+        // Draw normal transitions
         for (const symbol of dfa.alphabet) {
             const to = dfa.transitions[from][symbol];
             if (!to) {
                 continue;
             }
-
-            // Self-loop
+            // Don't draw self-loop again
             if (from === to) {
-                drawSelfLoop(svg, from, positions[from], symbol);
+                continue;
             }
-
-            // Normal transition
-            else {
-                drawTransition(svg, from, to, positions[from], positions[to], symbol);
-            }
+            drawTransition(svg, from, to, positions[from], positions[to], symbol);
         }
     }
 
@@ -388,18 +496,18 @@ function highlightTransition(from, to, symbol) {
 
         console.log("Checking:", transitionFrom, transitionSymbol, transitionTo);
 
-        if (transitionFrom === from && transitionTo === to && transitionSymbol === symbol) {
-            console.log("MATCH FOUND!");
+        if (transitionFrom === from && transitionTo === to 
+            && transitionSymbol.split(",").map(s => s.trim()).includes(symbol)) {
             transition.classList.add("active-transition");
         }
     });
 }
 
 function highlightFinalState(state) {
-    const finalState = document.querySelector(`#dfaSvg [data-state="${state}"]`);
-    if (finalState) {
-        finalState.classList.add("accepting-state");
-    }
+    const finalStates = document.querySelectorAll(`#dfaSvg [data-state="${state}"]`);
+    finalStates.forEach(element => {
+        element.classList.add("accepting-state");
+    });
 }
 
 function showStep(stepIndex) {
@@ -429,17 +537,20 @@ function showStep(stepIndex) {
     highlightTableRow(stepIndex);
 
     // Final state highlighting
-    if (stepIndex === simulationSteps.length - 1 && dfa.finalStates.includes(step.currentState)) {
-        highlightFinalState(step.currentState);
+    if (stepIndex === simulationSteps.length - 1 && dfa.finalStates.includes(step.nextState)) {
+
+        // Remove blue state highlight
+        const states = document.querySelectorAll("#dfaSvg [data-state]");
+        states.forEach(state => {state.classList.remove("active-state");});
+
+        // Highlight the final state
+        highlightFinalState(step.nextState);
     }
 }
 
 function highlightTableRow(stepIndex) {
     const rows = document.querySelectorAll("#stepsTable tr");
-    rows.forEach(row => {
-        row.classList.remove("active-row");
-    });
-
+    rows.forEach(row => {row.classList.remove("active-row");});
     if (rows[stepIndex]) {
         rows[stepIndex].classList.add("active-row");
     }
@@ -507,15 +618,13 @@ document
             return;
         }
 
-        // Save Simulation
         simulationSteps = result.steps;
         currentStep = 0;
         isPlaying = false;
 
         displaySteps(result.steps);   // Display steps
 
-        // Display final result
-        const resultElement = document.getElementById("result");
+        const resultElement = document.getElementById("result");     // Display final result
 
         if (result.accepted) {
             resultElement.innerHTML = `
