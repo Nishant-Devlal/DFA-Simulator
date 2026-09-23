@@ -62,15 +62,22 @@ function validateDFA(dfa) {
     if (dfa.states.length === 0) {
         return "No states were provided.";
     }
-
     if (dfa.alphabet.length === 0) {
         return "No alphabet symbols were provided.";
     }
-
     if (!dfa.states.includes(dfa.startState)) {
         return "Start state does not exist.";
     }
-
+    if (new Set(dfa.states).size !== dfa.states.length) {
+        return "Duplicate states are not allowed.";
+    }
+    if (new Set(dfa.alphabet).size !== dfa.alphabet.length) {
+        return "Duplicate alphabet symbols are not allowed.";
+    }
+    if (new Set(dfa.finalStates).size !== dfa.finalStates.length) {
+        return "Duplicate final states are not allowed.";
+    }
+    
     for (const state of dfa.finalStates) {
         if (!dfa.states.includes(state)) {
             return `Final state ${state} does not exist.`;
@@ -80,15 +87,6 @@ function validateDFA(dfa) {
     for (const from of Object.keys(dfa.transitions)) {
         if (!dfa.states.includes(from)) {
             return `Transition contains unknown state ${from}.`;
-        }
-        if (new Set(dfa.states).size !== dfa.states.length) {
-            return "Duplicate states are not allowed.";
-        }
-        if (new Set(dfa.alphabet).size !== dfa.alphabet.length) {
-            return "Duplicate alphabet symbols are not allowed.";
-        }
-        if (new Set(dfa.finalStates).size !== dfa.finalStates.length) {
-            return "Duplicate final states are not allowed.";
         }
 
         for (const symbol of Object.keys(dfa.transitions[from])) {
